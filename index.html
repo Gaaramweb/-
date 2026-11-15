@@ -75,7 +75,7 @@ level|уровень|What is your level?
 character|персонаж; характер|The game has a cool character.
 game|игра|I play games at night.
 customer|покупатель, клиент|The customer is happy.`;
-var cards=[],queue=[],cur=null,shown=false,dir="en",tab="study",exp="";
+var cards=[],queue=[],cur=null,shown=false,dir="en",tab="study",exp="",ok=false,typed="";
 function $(i){return document.getElementById(i)}
 function today(){return Math.floor(Date.now()/DAY)}
 function esc(s){return String(s||"").replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
@@ -89,14 +89,14 @@ function build(all){var d=today();queue=cards.filter(function(c){return all||c.d
 function next(){cur=queue.shift()||null;shown=false;render()}
 function rate(r){var c=cur;if(r==="again"){c.box=0;c.due=today();queue.push(c)}else if(r==="hard"){c.box=Math.max(1,c.box);c.due=today()+1}else{c.box=Math.min(5,c.box+1);c.due=today()+IV[c.box]}save();next()}
 function studyHTML(){
- var h='<div class="seg"><button data-act="dir" data-v="en" class="'+(dir==="en"?"on":"")+'">EN → RU</button><button data-act="dir" data-v="ru" class="'+(dir==="ru"?"on":"")+'">RU → EN</button></div>';
+ var h='<div class="seg"><button data-act="dir" data-v="en" class="'+(dir==="en"?"on":"")+'">EN → RU</button><button data-act="dir" data-v="ru" class="'+(dir==="ru"?"on":"")+'">RU → EN</button><button data-act="dir" data-v="type" class="'+(dir==="type"?"on":"")+'">Писать</button></div>';
  if(!cur)return h+'<div class="card"><div class="big">На сегодня всё 🎉</div><p class="mute">Приходи завтра. Каждый день хотя бы 10 минут.</p><button class="btn ghost" data-act="all">Повторить все карточки</button></div>';
- var q=dir==="en"?cur.en:cur.ru,a=dir==="en"?cur.ru:cur.en;
+ var q=dir==="en"?cur.en:cur.ru,a=dir==="en"?cur.ru:cur.en;var ty=dir==="type";if(ty)a=cur.en;
  h+='<div class="card"><div class="big">'+esc(q)+'</div>';
  if(dir==="en"||shown)h+='<button class="icon" data-act="say" aria-label="Слушать">🔊</button>';
- if(!shown)h+='<button class="btn" data-act="show">Показать ответ</button>';
- else{h+='<div class="ans">'+esc(a)+'</div>';if(cur.ex)h+='<div class="ex">'+esc(cur.ex)+'</div>';
-  h+='<div class="rate"><button class="btn bad" data-act="rate" data-v="again">Не знаю</button><button class="btn mid" data-act="rate" data-v="hard">Трудно</button><button class="btn" data-act="rate" data-v="good">Знаю</button></div>'}
+ if(!shown)h+=ty?'<input id="ty" placeholder="Напиши по-английски" autocapitalize="off" autocomplete="off" spellcheck="false" style="margin-top:8px;text-align:center"><button class="btn" data-act="check">Проверить</button>':'<button class="btn" data-act="show">Показать ответ</button>';
+ else{if(ty)h+='<div class="mute">'+(ok?'✅ Верно':'❌ Ты написал: '+esc(typed))+'</div>';h+='<div class="ans">'+esc(a)+'</div>';if(cur.ex)h+='<div class="ex">'+esc(cur.ex)+'</div>';
+  if(ty&&!ok)h+='<div class="rate"><button class="btn bad" data-act="rate" data-v="again">Дальше</button></div>';else h+='<div class="rate"><button class="btn bad" data-act="rate" data-v="again">Не знаю</button><button class="btn mid" data-act="rate" data-v="hard">Трудно</button><button class="btn" data-act="rate" data-v="good">Знаю</button></div>'}
  return h+'<div class="mute small">Осталось в очереди: '+queue.length+'</div></div>'}
 function wordsHTML(){
  var h='<h2>Новое слово</h2><input id="en" placeholder="English"><input id="ru" placeholder="Перевод"><input id="ex" placeholder="Пример (можно пусто)"><button class="btn" data-act="add">Добавить</button>';
@@ -109,11 +109,12 @@ function render(){
  var d=today(),due=cards.filter(function(c){return c.due<=d}).length,L=cards.filter(function(c){return c.box>=4}).length;
  var h='<h1>Мои карточки</h1><div class="stats"><div class="stat"><b>'+due+'</b><span>на сегодня</span></div><div class="stat"><b>'+cards.length+'</b><span>всего</span></div><div class="stat"><b>'+L+'</b><span>выучено</span></div></div>';
  h+='<div class="tabs"><button data-act="tab" data-v="study" class="'+(tab==="study"?"on":"")+'">Учить</button><button data-act="tab" data-v="words" class="'+(tab==="words"?"on":"")+'">Слова</button></div>';
- $("app").innerHTML=h+(tab==="study"?studyHTML():wordsHTML())}
+ $("app").innerHTML=h+(tab==="study"?studyHTML():wordsHTML());var t=$("ty");if(t)t.focus()}
 document.addEventListener("click",function(e){var b=e.target.closest("[data-act]");if(!b)return;var a=b.dataset.act,v=b.dataset.v;
  if(a==="tab"){tab=v;if(v==="study")build(false);else render()}
  else if(a==="dir"){dir=v;shown=false;render()}
  else if(a==="show"){shown=true;render()}
+ else if(a==="check"){typed=$("ty").value.trim();ok=typed.toLowerCase()===cur.en.toLowerCase();shown=true;render()}
  else if(a==="say"){say(cur.en)}
  else if(a==="rate"){rate(v)}
  else if(a==="all"){build(true)}
@@ -122,6 +123,7 @@ document.addEventListener("click",function(e){var b=e.target.closest("[data-act]
  else if(a==="exp"){exp=cards.map(function(c){return c.en+" | "+c.ru+(c.ex?" | "+c.ex:"")}).join("\n");render()}
  else if(a==="del"){cards=cards.filter(function(c){return String(c.id)!==v});save();render()}
 });
+document.addEventListener("keydown",function(e){if(e.key==="Enter"&&e.target.id==="ty"){e.preventDefault();var b=document.querySelector('[data-act="check"]');if(b)b.click()}});
 load();build(false);
 </script>
 </body>
