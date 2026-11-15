@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Мои карточки: английский</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f6f5f1;--card:#fff;--text:#1d1d1b;--mute:#6b6a64;--line:#e2e0d8;--acc:#2f6f5e;--acc-t:#fff;--bad:#b3402f;--mid:#a8741a}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#14161a;--card:#1d2026;--text:#ecebe6;--mute:#9a9a94;--line:#2c3038;--acc:#5fb59d;--acc-t:#0e1512;--bad:#e07a68;--mid:#d9a441}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#14161a;--card:#1d2026;--text:#ecebe6;--mute:#9a9a94;--line:#2c3038;--acc:#5fb59d;--acc-t:#0e1512;--bad:#e07a68;--mid:#d9a441}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:560px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:22px;margin:0 0 12px}
+h2{font-size:16px;margin:20px 0 8px}
+.stats{display:flex;gap:8px;margin-bottom:14px}
+.stat{flex:1;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.stat b{display:block;font-size:22px}
+.stat span{color:var(--mute);font-size:13px}
+.tabs,.seg{display:flex;gap:6px;margin-bottom:14px}
+.tabs button,.seg button{flex:1;padding:10px;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:10px;font:inherit;cursor:pointer}
+.tabs button.on,.seg button.on{background:var(--acc);color:var(--acc-t);border-color:var(--acc)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:24px 18px;text-align:center}
+.big{font-size:30px;font-weight:650;margin:6px 0 10px;overflow-wrap:anywhere}
+.ans{font-size:24px;margin:16px 0 6px;color:var(--acc)}
+.ex{color:var(--mute);margin-bottom:14px;font-style:italic}
+.mute{color:var(--mute)}
+.small{font-size:13px;margin-top:16px}
+.btn{width:100%;padding:13px;border-radius:12px;border:0;background:var(--acc);color:var(--acc-t);font:inherit;font-weight:600;cursor:pointer;margin-top:8px}
+.btn.ghost{background:transparent;color:var(--acc);border:1px solid var(--acc)}
+.btn.bad{background:var(--bad)}
+.btn.mid{background:var(--mid)}
+.rate{display:flex;gap:8px;margin-top:10px}
+.rate .btn{margin:0;padding:12px 6px}
+.icon{border:1px solid var(--line);background:transparent;border-radius:999px;padding:6px 14px;font-size:18px;cursor:pointer;color:var(--text)}
+input,textarea{width:100%;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--text);font:inherit;margin-bottom:8px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--line)}
+.row small{color:var(--mute);display:block}
+.del{background:none;border:0;color:var(--mute);font-size:18px;cursor:pointer;padding:4px 8px}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script>
+var KEY="english-flashcards-v1",DAY=86400000,IV=[0,1,3,7,14,30];
+var STARTER=`contract|договор|Please sign the contract today.
+agreement|соглашение|They signed the agreement.
+lawyer|юрист, адвокат|My lawyer is very helpful.
+client|клиент (у юриста)|The client called me today.
+law|закон; право|This law is new.
+court|суд|The case is in court.
+right|право (на что-то)|You have the right to speak.
+rule|правило|Read the rules first.
+evidence|доказательство|We need more evidence.
+deadline|крайний срок|The deadline is on Friday.
+agree|соглашаться|I agree with you.
+website|сайт|I build websites.
+page|страница|Open the home page.
+design|дизайн; проектировать|I like simple design.
+traffic|трафик (посетители)|The site has more traffic now.
+search|поиск; искать|Search for a word.
+ranking|позиция в поиске|Our ranking is better.
+content|контент|Good content takes time.
+link|ссылка|Click this link.
+update|обновлять; обновление|Please update the page.
+mistake|ошибка|I made a mistake.
+improve|улучшать|I want to improve my English.
+goal|цель|My goal is B2.
+skill|навык|Writing is a useful skill.
+exercise|упражнение; тренировка|Do this exercise again.
+muscle|мышца|Squats train your leg muscles.
+strong|сильный|She is strong.
+level|уровень|What is your level?
+character|персонаж; характер|The game has a cool character.
+game|игра|I play games at night.
+customer|покупатель, клиент|The customer is happy.`;
+var cards=[],queue=[],cur=null,shown=false,dir="en",tab="study",exp="";
+function $(i){return document.getElementById(i)}
+function today(){return Math.floor(Date.now()/DAY)}
+function esc(s){return String(s||"").replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function mk(en,ru,ex){return{id:Date.now()+Math.random(),en:en,ru:ru,ex:ex||"",box:0,due:today()}}
+function parse(t){return t.split("\n").map(function(l){var p=l.split(/\s+[-–—]\s+|\t|\|/).map(function(x){return x.trim()});return p[0]&&p[1]?mk(p[0],p[1],p[2]):null}).filter(Boolean)}
+function addMany(arr){arr.forEach(function(n){if(!cards.some(function(c){return c.en.toLowerCase()===n.en.toLowerCase()}))cards.push(n)});save()}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(cards))}catch(e){}}
+function load(){try{var s=localStorage.getItem(KEY);if(s)cards=JSON.parse(s)}catch(e){cards=[]}if(!cards.length){cards=parse(STARTER);save()}}
+function say(t){try{var u=new SpeechSynthesisUtterance(t);u.lang="en-GB";speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
+function build(all){var d=today();queue=cards.filter(function(c){return all||c.due<=d});for(var i=queue.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=queue[i];queue[i]=queue[j];queue[j]=t}next()}
+function next(){cur=queue.shift()||null;shown=false;render()}
+function rate(r){var c=cur;if(r==="again"){c.box=0;c.due=today();queue.push(c)}else if(r==="hard"){c.box=Math.max(1,c.box);c.due=today()+1}else{c.box=Math.min(5,c.box+1);c.due=today()+IV[c.box]}save();next()}
+function studyHTML(){
+ var h='<div class="seg"><button data-act="dir" data-v="en" class="'+(dir==="en"?"on":"")+'">EN → RU</button><button data-act="dir" data-v="ru" class="'+(dir==="ru"?"on":"")+'">RU → EN</button></div>';
+ if(!cur)return h+'<div class="card"><div class="big">На сегодня всё 🎉</div><p class="mute">Приходи завтра. Каждый день хотя бы 10 минут.</p><button class="btn ghost" data-act="all">Повторить все карточки</button></div>';
+ var q=dir==="en"?cur.en:cur.ru,a=dir==="en"?cur.ru:cur.en;
+ h+='<div class="card"><div class="big">'+esc(q)+'</div>';
+ if(dir==="en"||shown)h+='<button class="icon" data-act="say" aria-label="Слушать">🔊</button>';
+ if(!shown)h+='<button class="btn" data-act="show">Показать ответ</button>';
+ else{h+='<div class="ans">'+esc(a)+'</div>';if(cur.ex)h+='<div class="ex">'+esc(cur.ex)+'</div>';
+  h+='<div class="rate"><button class="btn bad" data-act="rate" data-v="again">Не знаю</button><button class="btn mid" data-act="rate" data-v="hard">Трудно</button><button class="btn" data-act="rate" data-v="good">Знаю</button></div>'}
+ return h+'<div class="mute small">Осталось в очереди: '+queue.length+'</div></div>'}
+function wordsHTML(){
+ var h='<h2>Новое слово</h2><input id="en" placeholder="English"><input id="ru" placeholder="Перевод"><input id="ex" placeholder="Пример (можно пусто)"><button class="btn" data-act="add">Добавить</button>';
+ h+='<h2>Список слов</h2><textarea id="bulk" rows="5" placeholder="слово | перевод | пример — каждое с новой строки"></textarea><button class="btn ghost" data-act="imp">Добавить из списка</button><button class="btn ghost" data-act="exp">Показать мой список</button>';
+ if(exp)h+='<textarea readonly rows="8" style="margin-top:8px">'+esc(exp)+'</textarea>';
+ h+='<h2>Все слова ('+cards.length+')</h2>';
+ cards.slice().sort(function(a,b){return a.en.localeCompare(b.en)}).forEach(function(c){h+='<div class="row"><div>'+esc(c.en)+' — '+esc(c.ru)+'<small>уровень '+c.box+' из 5</small></div><button class="del" data-act="del" data-v="'+c.id+'" aria-label="Удалить">✕</button></div>'});
+ return h}
+function render(){
+ var d=today(),due=cards.filter(function(c){return c.due<=d}).length,L=cards.filter(function(c){return c.box>=4}).length;
+ var h='<h1>Мои карточки</h1><div class="stats"><div class="stat"><b>'+due+'</b><span>на сегодня</span></div><div class="stat"><b>'+cards.length+'</b><span>всего</span></div><div class="stat"><b>'+L+'</b><span>выучено</span></div></div>';
+ h+='<div class="tabs"><button data-act="tab" data-v="study" class="'+(tab==="study"?"on":"")+'">Учить</button><button data-act="tab" data-v="words" class="'+(tab==="words"?"on":"")+'">Слова</button></div>';
+ $("app").innerHTML=h+(tab==="study"?studyHTML():wordsHTML())}
+document.addEventListener("click",function(e){var b=e.target.closest("[data-act]");if(!b)return;var a=b.dataset.act,v=b.dataset.v;
+ if(a==="tab"){tab=v;if(v==="study")build(false);else render()}
+ else if(a==="dir"){dir=v;shown=false;render()}
+ else if(a==="show"){shown=true;render()}
+ else if(a==="say"){say(cur.en)}
+ else if(a==="rate"){rate(v)}
+ else if(a==="all"){build(true)}
+ else if(a==="add"){var en=$("en").value.trim(),ru=$("ru").value.trim();if(en&&ru){addMany([mk(en,ru,$("ex").value.trim())]);render()}}
+ else if(a==="imp"){addMany(parse($("bulk").value));render()}
+ else if(a==="exp"){exp=cards.map(function(c){return c.en+" | "+c.ru+(c.ex?" | "+c.ex:"")}).join("\n");render()}
+ else if(a==="del"){cards=cards.filter(function(c){return String(c.id)!==v});save();render()}
+});
+load();build(false);
+</script>
+</body>
+</html>
